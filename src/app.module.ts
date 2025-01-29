@@ -7,7 +7,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: process.env.DB_HOST,
+      host: process.env.PGHOST,
       port: 5432,
       username: process.env.PGUSER,
       password: process.env.PGPASSWORD,
