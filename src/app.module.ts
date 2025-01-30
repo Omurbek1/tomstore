@@ -1,12 +1,15 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { BotModule } from './bot.module';
+import { ProductsModule } from './products/products.module';
+import { AuthMiddleware } from './auth/auth.middleware';
+import { UsersModule } from './user/user.module';
 
 @Module({
   imports: [
-    BotModule,
+    ConfigModule.forRoot(), // Загружаем переменные окружения из .env
     TypeOrmModule.forRootAsync({
       useFactory: () => ({
         type: 'postgres',
@@ -14,22 +17,25 @@ import { BotModule } from './bot.module';
         port: Number(process.env.POSTGRESPORT) || 5432,
         username: process.env.POSTGRESUSER || 'postgres',
         password: process.env.POSTGRESPASSWORD || 'password',
-        database: process.env.POSTGRESDB || 'mydatabase',
-        synchronize: true,
-        entities: [__dirname + '/../**/*.entity.{ts,js}'], // Add this to load entities
-        autoLoadEntities: true, // Optional: Auto-load entities
-        logging: true, // Optional: Logs queries for debugging
-        extra: {
-          ssl:
-            process.env.POSTGRESSSL === 'true'
-              ? { rejectUnauthorized: false }
-              : false,
-        },
+        database: process.env.POSTGRESDB || 'railway',
+        synchronize: true, // Включите только в DEV!
+        entities: [__dirname + '/**/*.entity.{js,ts}'], // Исправленный путь
+        autoLoadEntities: true,
+        logging: true,
+        extra:
+          process.env.POSTGRES_SSL === 'true'
+            ? { ssl: { rejectUnauthorized: false } }
+            : {},
       }),
     }),
+    ProductsModule,
+    UsersModule,
   ],
-
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(AuthMiddleware).forRoutes('*');
+  }
+}
