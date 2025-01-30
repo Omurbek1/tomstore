@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import User from '../user/users.entity';
@@ -18,6 +22,21 @@ export class AuthService {
 
   async signUp(signUpDto: SignUpDto): Promise<{ token: string }> {
     const { name, email, password } = signUpDto;
+    // ✅ Проверяем, существует ли пользователь с таким email
+    const existingUser = await this.usersRepository.findOne({
+      where: { email },
+    });
+
+    if (existingUser) {
+      console.log(
+        `❌ [SIGNUP] Пользователь с email "${email}" уже существует.`,
+      );
+      throw new ConflictException(
+        `Пользователь с email "${email}" уже существует.`,
+      );
+    }
+
+    console.log(`✅ [SIGNUP] Создаём нового пользователя: ${email}`);
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -54,5 +73,15 @@ export class AuthService {
     const token = this.jwtService.sign({ id: user.id });
 
     return { token };
+  }
+
+  async getUserById(id: number): Promise<User> {
+    const user = await this.usersRepository.findOne({
+      where: { id },
+    });
+    if (!user) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+    return user;
   }
 }
