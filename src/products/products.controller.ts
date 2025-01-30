@@ -6,14 +6,11 @@ import {
   Delete,
   Body,
   Param,
-  UseGuards,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Product } from './product.entity';
-import { RoleGuard } from '../auth/role.guard';
-import { Roles } from '../auth/roles.decorator';
 
 @Controller('products')
 export class ProductsController {
@@ -29,15 +26,11 @@ export class ProductsController {
     return await this.productsService.findOne(id);
   }
 
-  //   @UseGuards(RoleGuard)
-  //   @Roles('admin', 'manager')
   @Post()
   async create(@Body() createProductDto: CreateProductDto): Promise<Product> {
     return await this.productsService.create(createProductDto);
   }
 
-  @UseGuards(RoleGuard)
-  @Roles('admin', 'manager')
   @Patch(':id')
   async update(
     @Param('id') id: number,
@@ -46,8 +39,6 @@ export class ProductsController {
     return await this.productsService.update(id, updateProductDto);
   }
 
-  @UseGuards(RoleGuard)
-  @Roles('admin')
   @Delete(':id')
   async remove(@Param('id') id: number): Promise<void> {
     return await this.productsService.remove(id);
