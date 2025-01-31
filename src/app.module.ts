@@ -6,6 +6,7 @@ import { ProductsModule } from './products/products.module';
 import { UsersModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { CartModule } from './cart/cart.module';
+import { WishlistModule } from './wishlist/wishlist.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { CartModule } from './cart/cart.module';
     UsersModule,
     AuthModule,
     CartModule,
+    WishlistModule,
   ],
  
 

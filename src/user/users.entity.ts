@@ -1,6 +1,7 @@
 import { BeforeInsert, Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { Cart } from 'src/cart/cart.entity';
+import { Wishlist } from 'src/wishlist/wishlist.entity';
 
 // ✅ Официальный enum для ролей
 export enum UserRole {
@@ -28,6 +29,9 @@ class User {
 
   @OneToMany(() => Cart, (cart) => cart.user) // ✅ Связь с корзиной
   cart: Cart[];
+
+  @OneToMany(() => Wishlist, (wishlist) => wishlist.user)
+  wishlist: Wishlist[];
 
   @BeforeInsert()
   async hashPassword() {
