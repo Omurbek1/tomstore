@@ -10,8 +10,24 @@ export class UsersService {
     private usersRepository: Repository<User>,
   ) {}
 
-  async getAllUsers() {
-    const users = this.usersRepository.find();
+  async getAllUsers(requestingUser: User) {
+    if (!requestingUser || !requestingUser.role) {
+      throw new UnauthorizedException(
+        '❌ Ошибка авторизации, токен не передан или повреждён',
+      );
+    }
+
+    if (requestingUser.role !== UserRole.ADMIN) {
+      console.log(
+        '❌ Только администратор может просматривать список пользователей',
+      );
+      throw new UnauthorizedException(
+        '❌ Только администратор может просматривать список пользователей',
+      );
+    }
+
+    // ✅ Правильный возврат пользователей
+    return  await this.usersRepository.find();
     return users;
   }
 

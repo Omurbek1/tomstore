@@ -26,9 +26,8 @@ export class UsersController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles('admin')
   @Get()
-  async getAllUsers(): Promise<User[]> {
-    const users = await this.usersService.getAllUsers();
-    return users;
+  async getAllUsers(@Req() req): Promise<User[]> {
+    return  await this.usersService.getAllUsers(req.user);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
