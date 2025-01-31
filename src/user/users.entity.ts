@@ -1,5 +1,6 @@
-import { BeforeInsert, Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { BeforeInsert, Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
+import { Cart } from 'src/cart/cart.entity';
 
 // ✅ Официальный enum для ролей
 export enum UserRole {
@@ -24,6 +25,9 @@ class User {
 
   @Column({ type: 'enum', enum: UserRole, default: UserRole.USER }) // ✅ Enum корректно используется
   role: UserRole;
+
+  @OneToMany(() => Cart, (cart) => cart.user) // ✅ Связь с корзиной
+  cart: Cart[];
 
   @BeforeInsert()
   async hashPassword() {
