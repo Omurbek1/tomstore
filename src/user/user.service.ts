@@ -28,7 +28,6 @@ export class UsersService {
 
     // ✅ Правильный возврат пользователей
     return  await this.usersRepository.find();
-    return users;
   }
 
   async getUserById(id: number) {

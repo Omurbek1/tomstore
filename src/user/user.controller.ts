@@ -13,7 +13,6 @@ import {
 import User, { UserRole } from './users.entity';
 import { UsersService } from './user.service';
 import { CreateUserDto } from './dto/user.dto';
-import { AuthGuard } from '@nestjs/passport';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { RoleGuard } from 'src/auth/role.guard';
 import { Roles } from 'src/auth/roles.decorator';
@@ -27,6 +26,11 @@ export class UsersController {
   @Roles('admin')
   @Get()
   async getAllUsers(@Req() req): Promise<User[]> {
+    if (!req.user) {
+      throw new Error(
+        '❌ Ошибка: req.user не найден! Возможно, не передан токен.',
+      );
+    }
     return  await this.usersService.getAllUsers(req.user);
   }
 
