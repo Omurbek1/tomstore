@@ -27,26 +27,22 @@ export class UsersService {
     throw new NotFoundException('Could not find the user');
   }
 
-  async createUser(createUserDto: CreateUserDto) {
-    // ✅ Проверяем, существует ли уже пользователь с таким email
+  async create(createUserDto: Partial<User>): Promise<User> {
     const existingUser = await this.usersRepository.findOne({
       where: { email: createUserDto.email },
     });
 
     if (existingUser) {
       throw new ConflictException(
-        `❌ Пользователь с email "${createUserDto.email}" уже существует`,
+        `❌ Email "${createUserDto.email}" is already taken`,
       );
     }
 
-    // ✅ Хешируем пароль перед сохранением
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
-    // ✅ Создаём нового пользователя с хешированным паролем
     const newUser = this.usersRepository.create({
-      name: createUserDto.name,
-      email: createUserDto.email,
-      password: hashedPassword, // Сохранение хешированного пароля
+      ...createUserDto,
+      password: hashedPassword, // ✅ Store the hashed password
     });
 
     return this.usersRepository.save(newUser);
@@ -65,10 +61,19 @@ export class UsersService {
     await this.usersRepository.remove(user);
     return user;
   }
+
+ 
+
   async findOne(id: number): Promise<User> {
     const user = await this.usersRepository.findOne({ where: { id } });
-    if (!user)
+
+    if (!user) {
       throw new NotFoundException(`❌ Пользователь с ID ${id} не найден`);
+    }
+
     return user;
+  }
+  async findOneByEmail (email: string): Promise<User> {
+    
   }
 }

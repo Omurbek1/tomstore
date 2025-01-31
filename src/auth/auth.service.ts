@@ -1,6 +1,10 @@
 import {
+  BadRequestException,
   ConflictException,
+  forwardRef,
+  Inject,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -11,44 +15,38 @@ import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
 import { SignUpDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
+import { UsersService } from 'src/user/user.service';
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectRepository(User)
-    private usersRepository: Repository<User>,
-    private jwtService: JwtService,
+    @Inject(forwardRef(() => UsersService)) // ✅ Используем forwardRef()
+    private readonly usersService: UsersService,
+    private readonly jwtService: JwtService,
   ) {}
 
-  async signUp(signUpDto: SignUpDto): Promise<{ token: string }> {
-    const { name, email, password } = signUpDto;
-    // ✅ Проверяем, существует ли пользователь с таким email
-    const existingUser = await this.usersRepository.findOne({
-      where: { email },
-    });
+  async signUp(signUpDto: SignUpDto) {
+    const { name, email, password, role } = signUpDto;
 
-    if (existingUser) {
-      console.log(
-        `❌ [SIGNUP] Пользователь с email "${email}" уже существует.`,
-      );
-      throw new ConflictException(
-        `Пользователь с email "${email}" уже существует.`,
-      );
+    if (!email || !password || !name || !role) {
+      throw new BadRequestException('❌ Все поля обязательны');
     }
 
-    console.log(`✅ [SIGNUP] Создаём нового пользователя: ${email}`);
+    const existingUser = await this.usersService.findOneByEmail(email);
+    if (existingUser) {
+      throw new ConflictException(`❌ Email "${email}" уже используется`);
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await this.usersRepository.create({
+    const newUser = await this.usersService.create({
       name,
       email,
       password: hashedPassword,
+      role,
     });
 
-    await this.usersRepository.save(user);
-
-    const token = this.jwtService.sign({ id: user.id });
+    const token = this.jwtService.sign({ id: newUser.id, role: newUser.role });
 
     return { token };
   }
@@ -56,32 +54,22 @@ export class AuthService {
   async login(loginDto: LoginDto): Promise<{ token: string }> {
     const { email, password } = loginDto;
 
-    const user = await this.usersRepository.findOne({
-      where: { email },
-    });
-
+    const user = await this.usersService.findOneByEmail(email); // ✅ Исправлено (передаём email)
     if (!user) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException('❌ Неверный email или пароль');
     }
 
     const isPasswordMatched = await bcrypt.compare(password, user.password);
-
     if (!isPasswordMatched) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException('❌ Неверный email или пароль');
     }
 
-    const token = this.jwtService.sign({ id: user.id });
+    const token = this.jwtService.sign({ id: user.id, role: user.role });
 
     return { token };
   }
 
-  async getUserById(id: number): Promise<User> {
-    const user = await this.usersRepository.findOne({
-      where: { id },
-    });
-    if (!user) {
-      throw new UnauthorizedException('Invalid email or password');
-    }
-    return user;
+  async getUserById(id: string | number): Promise<User> {
+  
   }
 }

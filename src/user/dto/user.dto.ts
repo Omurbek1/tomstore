@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsEmail, MinLength } from 'class-validator';
+import { IsNotEmpty, IsEmail, MinLength, IsIn } from 'class-validator';
 
 export class CreateUserDto {
   @IsNotEmpty()
@@ -11,4 +11,8 @@ export class CreateUserDto {
   @IsNotEmpty()
   @MinLength(6)
   password: string;
+
+  @IsNotEmpty()
+  @IsIn(['admin', 'manager', 'user']) // ✅ Разрешаем только указанные роли
+  role: 'admin' | 'manager' | 'user';
 }
