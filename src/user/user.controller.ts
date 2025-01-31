@@ -6,14 +6,18 @@ import {
   Post,
   Delete,
   UseGuards,
+  Req,
+  Patch,
+  BadRequestException,
 } from '@nestjs/common';
-import User from './users.entity';
+import User, { UserRole } from './users.entity';
 import { UsersService } from './user.service';
 import { CreateUserDto } from './dto/user.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { RoleGuard } from 'src/auth/role.guard';
 import { Roles } from 'src/auth/roles.decorator';
+import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 
 @Controller('users')
 export class UsersController {
@@ -35,13 +39,11 @@ export class UsersController {
     return user;
   }
 
-  // @UseGuards(JwtAuthGuard, RoleGuard)
-  // @Roles('admin')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles('admin') // ✅ Только админ может создавать пользователей
   @Post()
-  // @UseGuards(AuthGuard('jwt'))
   async create(@Body() createUserDto: CreateUserDto) {
-    const newUser = await this.usersService.create(createUserDto);
-    return newUser;
+    return this.usersService.create(createUserDto); // ✅ Теперь usersService доступен
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
@@ -57,5 +59,28 @@ export class UsersController {
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.usersService.findOne(Number(id)); // ✅ Преобразуем ID в число перед вызовом сервиса
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles('admin') // ✅ Только админ может изменять роли
+  @Patch(':id/role')
+  async updateUserRole(
+    @Req() req,
+    @Param('id') userId: string,
+    @Body() updateUserRoleDto: UpdateUserRoleDto,
+  ) {
+    const newRole = updateUserRoleDto.role as UserRole;
+
+    if (!Object.values(UserRole).includes(newRole)) {
+      throw new BadRequestException(
+        '❌ Роль должна быть одной из: admin, manager, user',
+      );
+    }
+
+    return this.usersService.updateUserRole(
+      req.user.id,
+      Number(userId),
+      newRole,
+    );
   }
 }

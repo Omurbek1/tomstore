@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import User from '../user/users.entity';
+import User, { UserRole } from '../user/users.entity';
 import * as bcrypt from 'bcryptjs';
 
 import { JwtService } from '@nestjs/jwt';
@@ -26,11 +26,7 @@ export class AuthService {
   ) {}
 
   async signUp(signUpDto: SignUpDto) {
-    const { name, email, password, role } = signUpDto;
-
-    if (!email || !password || !name || !role) {
-      throw new BadRequestException('❌ Все поля обязательны');
-    }
+    const { name, email, password } = signUpDto;
 
     const existingUser = await this.usersService.findOneByEmail(email);
     if (existingUser) {
@@ -38,12 +34,12 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
+const role: UserRole = UserRole.USER;
     const newUser = await this.usersService.create({
       name,
       email,
       password: hashedPassword,
-      role,
+      role, // ✅ Все новые пользователи автоматически получают роль "user"
     });
 
     const token = this.jwtService.sign({ id: newUser.id, role: newUser.role });
@@ -70,6 +66,20 @@ export class AuthService {
   }
 
   async getUserById(id: string | number): Promise<User> {
-  
+    const numericId = Number(id);
+
+    if (isNaN(numericId)) {
+      throw new NotFoundException(`❌ ID должен быть числом, получено: ${id}`);
+    }
+
+    const user = await this.usersService.findOne(numericId);
+
+    if (!user) {
+      throw new NotFoundException(
+        `❌ Пользователь с ID ${numericId} не найден`,
+      );
+    }
+
+    return user;
   }
 }

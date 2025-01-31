@@ -1,6 +1,13 @@
 import { BeforeInsert, Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
-export type UserRole = 'admin' | 'manager' | 'user';
+
+// ✅ Официальный enum для ролей
+export enum UserRole {
+  ADMIN = 'admin',
+  MANAGER = 'manager',
+  USER = 'user',
+}
+
 @Entity()
 class User {
   @PrimaryGeneratedColumn()
@@ -15,12 +22,14 @@ class User {
   @Column()
   password: string;
 
-  @Column({ type: 'enum', enum: ['admin', 'manager', 'user'], default: 'user' })
+  @Column({ type: 'enum', enum: UserRole, default: UserRole.USER }) // ✅ Enum корректно используется
   role: UserRole;
 
   @BeforeInsert()
   async hashPassword() {
-    this.password = await bcrypt.hash(this.password, 10);
+    if (this.password) {
+      this.password = await bcrypt.hash(this.password, 10); // ✅ Пароль хешируется при сохранении
+    }
   }
 }
 

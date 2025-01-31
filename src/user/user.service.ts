@@ -1,7 +1,7 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import User from './users.entity';
+import User, { UserRole } from './users.entity';
 import { CreateUserDto } from './dto/user.dto';
 import * as bcrypt from 'bcryptjs';
 export class UsersService {
@@ -27,25 +27,48 @@ export class UsersService {
     throw new NotFoundException('Could not find the user');
   }
 
-  async create(createUserDto: Partial<User>): Promise<User> {
-    const existingUser = await this.usersRepository.findOne({
-      where: { email: createUserDto.email },
-    });
-
+  async create(userData: Partial<User>): Promise<User> {
+    const existingUser = await this.findOneByEmail(userData.email);
     if (existingUser) {
       throw new ConflictException(
-        `❌ Email "${createUserDto.email}" is already taken`,
+        `❌ Email "${userData.email}" уже используется`,
       );
     }
 
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-
-    const newUser = this.usersRepository.create({
-      ...createUserDto,
-      password: hashedPassword, // ✅ Store the hashed password
+    const user = this.usersRepository.create({
+      ...userData,
+      role: userData.role || UserRole.USER, // ✅ Если роль не передана, устанавливаем "user"
     });
 
-    return this.usersRepository.save(newUser);
+    return this.usersRepository.save(user);
+  }
+
+  async updateUserRole(
+    adminId: number,
+    userId: number,
+    newRole: UserRole, // ✅ Используем `UserRole`, а не `string`
+  ): Promise<User> {
+    const adminUser = await this.findOne(adminId);
+
+    if (adminUser.role !== UserRole.ADMIN) {
+      throw new UnauthorizedException(
+        '❌ Только администратор может изменять роли',
+      );
+    }
+
+    const user = await this.findOne(userId);
+    if (!user) {
+      throw new NotFoundException(`❌ Пользователь с ID ${userId} не найден`);
+    }
+
+    if (!Object.values(UserRole).includes(newRole)) {
+      throw new BadRequestException(
+        '❌ Роль должна быть одной из: admin, manager, user',
+      );
+    }
+
+    user.role = newRole;
+    return this.usersRepository.save(user);
   }
 
   async deleteById(id: number) {
@@ -62,8 +85,6 @@ export class UsersService {
     return user;
   }
 
- 
-
   async findOne(id: number): Promise<User> {
     const user = await this.usersRepository.findOne({ where: { id } });
 
@@ -73,7 +94,9 @@ export class UsersService {
 
     return user;
   }
-  async findOneByEmail (email: string): Promise<User> {
-    
+  async findOneByEmail(email: string): Promise<User | null> {
+    // ✅ Добавили `| null`
+    const user = await this.usersRepository.findOne({ where: { email } });
+    return user || null; // ✅ Если пользователь не найден, возвращаем null
   }
 }

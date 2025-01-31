@@ -6,6 +6,7 @@ import {
   MinLength,
   IsIn,
 } from 'class-validator';
+import { UserRole } from 'src/user/users.entity';
 
 export class SignUpDto {
   @IsNotEmpty()
@@ -28,13 +29,13 @@ export class SignUpDto {
   password: string;
 
   @IsNotEmpty()
-  @IsIn(['admin', 'manager', 'user'], {
+  @IsIn([UserRole], {
     message: 'Роль должна быть admin, manager или user',
   })
   @ApiProperty({
     example: 'user',
     description: 'Роль пользователя',
-    enum: ['admin', 'manager', 'user'],
+    enum: [UserRole],
   })
-  role: 'admin' | 'manager' | 'user';
+  role: UserRole;
 }
